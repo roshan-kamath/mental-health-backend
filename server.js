@@ -7,6 +7,10 @@ const PORT = process.env.PORT || 5000;
 
 
 app.use(cors());
+app.get("/", (req, res) => {
+  res.send("Mental Health Backend is running 🚀");
+});
+
 app.use(express.json());
 app.use(express.static(__dirname)); // ✅ ADDED
 
