@@ -727,216 +727,153 @@ int main() {
 
     </div>
 
-   <script>
-   
-    const moodBtns = document.querySelectorAll('.mood-btn');
-    const addMoodBtn = document.getElementById('addMoodBtn');
-    const triggerInput = document.getElementById('triggerInput');
-    const symptomInput = document.getElementById('symptomInput');
-    const stackList = document.getElementById('stackList');
-    const queueList = document.getElementById('queueList');
-    const hashmapList = document.getElementById('hashmapList');
-    const popBtn = document.getElementById('popBtn');
-    const dequeueBtn = document.getElementById('dequeueBtn');
-    const alertBanner = document.getElementById('alertBanner');
+  <script>
+const API_BASE = "https://mental-health-backend-yvfw.onrender.com";
 
-    let selectedMood = null;
+const moodBtns = document.querySelectorAll('.mood-btn');
+const addMoodBtn = document.getElementById('addMoodBtn');
+const triggerInput = document.getElementById('triggerInput');
+const symptomInput = document.getElementById('symptomInput');
+const stackList = document.getElementById('stackList');
+const queueList = document.getElementById('queueList');
+const hashmapList = document.getElementById('hashmapList');
+const popBtn = document.getElementById('popBtn');
+const dequeueBtn = document.getElementById('dequeueBtn');
+const alertBanner = document.getElementById('alertBanner');
 
-   const moodData = {
-        'Very Happy': { emoji: '', color: '#10b981', value: 5 },
-        'Happy': { emoji: '', color: '#34d399', value: 4 },
-        'Neutral': { emoji: '', color: '#fbbf24', value: 3 },
-        'Sad': { emoji: '', color: '#fb923c', value: 2 },
-        'Very Sad': { emoji: '', color: '#ef4444', value: 1 }
-    };
+let selectedMood = null;
 
-    // In-memory storage (since localStorage is not supported)
-    let stack = [];
-    let queue = [];
-    let hashMap = {};
+const moodData = {
+  "Very Happy": { color: "#10b981" },
+  "Happy": { color: "#34d399" },
+  "Neutral": { color: "#fbbf24" },
+  "Sad": { color: "#fb923c" },
+  "Very Sad": { color: "#ef4444" }
+};
 
-  
-    moodBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            moodBtns.forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedMood = btn.dataset.mood;
-            addMoodBtn.disabled = false;
-        });
-    });
+// ---------------- SELECT MOOD ----------------
+moodBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    moodBtns.forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedMood = btn.dataset.mood;
+    addMoodBtn.disabled = false;
+  });
+});
 
-   
-    addMoodBtn.addEventListener('click', () => {
-        if (!selectedMood) return;
+// ---------------- ADD MOOD ----------------
+addMoodBtn.addEventListener('click', async () => {
+  if (!selectedMood) return;
 
-        const entry = {
-            mood: selectedMood,
-            trigger: triggerInput.value,
-            symptom: symptomInput.value,
-            time: new Date().toLocaleString(),
-            value: moodData[selectedMood].value
-        };
+  await fetch(`${API_BASE}/addMood`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mood: selectedMood,
+      trigger: triggerInput.value,
+      symptom: symptomInput.value
+    })
+  });
 
-        // Add to stack (LIFO - max 5)
-        stack.unshift(entry);
-        if (stack.length > 5) stack.pop();
+  selectedMood = null;
+  triggerInput.value = "";
+  symptomInput.value = "";
+  addMoodBtn.disabled = true;
+  moodBtns.forEach(b => b.classList.remove('selected'));
 
-        // Add to queue (FIFO - max 10)
-        queue.push(entry);
-        if (queue.length > 10) queue.shift();
+  loadAll();
+});
 
-        // Add to hashmap
-        if (!hashMap[selectedMood]) {
-            hashMap[selectedMood] = { count: 0, triggers: [], symptoms: [] };
-        }
-        hashMap[selectedMood].count++;
-        if (entry.trigger) hashMap[selectedMood].triggers.push(entry.trigger);
-        if (entry.symptom) hashMap[selectedMood].symptoms.push(entry.symptom);
+// ---------------- POP STACK ----------------
+popBtn.addEventListener('click', async () => {
+  await fetch(`${API_BASE}/stack/pop`, { method: "DELETE" });
+  loadAll();
+});
 
-        // Reset form
-        moodBtns.forEach(b => b.classList.remove('selected'));
-        selectedMood = null;
-        triggerInput.value = '';
-        symptomInput.value = '';
-        addMoodBtn.disabled = true;
+// ---------------- DEQUEUE QUEUE ----------------
+dequeueBtn.addEventListener('click', async () => {
+  await fetch(`${API_BASE}/queue/dequeue`, { method: "DELETE" });
+  loadAll();
+});
 
-        // Update displays
-        updateStack();
-        updateQueue();
-        updateHashMap();
-        checkMoodSpikes();
-    });
+// ---------------- LOAD DATA ----------------
+async function loadAll() {
+  const [stack, queue, hashMap, alert] = await Promise.all([
+    fetch(`${API_BASE}/stack`).then(r => r.json()),
+    fetch(`${API_BASE}/queue`).then(r => r.json()),
+    fetch(`${API_BASE}/hashmap`).then(r => r.json()),
+    fetch(`${API_BASE}/alert`).then(r => r.json())
+  ]);
 
- 
-    popBtn.addEventListener('click', () => {
-        if (stack.length > 0) {
-            stack.shift();
-            updateStack();
-            checkMoodSpikes();
-        }
-    });
+  renderStack(stack);
+  renderQueue(queue);
+  renderHashMap(hashMap);
+  alertBanner.classList.toggle("active", alert.alert);
+}
 
-    dequeueBtn.addEventListener('click', () => {
-        if (queue.length > 0) {
-            queue.shift();
-            updateQueue();
-        }
-    });
+// ---------------- RENDER FUNCTIONS ----------------
+function renderStack(stack) {
+  if (!stack.length) {
+    stackList.innerHTML = '<div class="empty-state">Stack is empty</div>';
+    popBtn.disabled = true;
+    return;
+  }
+  popBtn.disabled = false;
+  stackList.innerHTML = stack.map((e, i) => `
+    <div class="entry" style="border-left:4px solid ${moodData[e.mood].color}">
+      <div class="entry-header">
+        <div><strong>${e.mood}</strong><br><small>${e.time}</small></div>
+        <span class="entry-badge">#${i + 1}</span>
+      </div>
+    </div>
+  `).join("");
+}
 
-    function updateStack() {
-        if (stack.length === 0) {
-            stackList.innerHTML = '<div class="empty-state">Stack is empty</div>';
-            popBtn.disabled = true;
-            return;
-        }
-        popBtn.disabled = false;
-        stackList.innerHTML = stack.map((entry, idx) => `
-            <div class="entry" style="background: linear-gradient(135deg, #dbeafe 0%, #f3e8ff 100%); border-color: ${moodData[entry.mood].color};">
-                <div class="entry-header">
-                    <div class="entry-mood">
-                        <span class="entry-emoji">${moodData[entry.mood].emoji}</span>
-                        <div class="entry-details">
-                            <h4>${entry.mood}</h4>
-                            <div class="entry-time">${entry.time}</div>
-                        </div>
-                    </div>
-                    <span class="entry-badge">#${idx + 1}</span>
-                </div>
-            </div>
-        `).join('');
-    }
+function renderQueue(queue) {
+  if (!queue.length) {
+    queueList.innerHTML = '<div class="empty-state">Queue is empty</div>';
+    dequeueBtn.disabled = true;
+    return;
+  }
+  dequeueBtn.disabled = false;
+  queueList.innerHTML = queue.map((e, i) => `
+    <div class="entry" style="border-left:4px solid ${moodData[e.mood].color}">
+      <div class="entry-header">
+        <div><strong>${e.mood}</strong><br><small>${e.time}</small></div>
+        <span class="entry-badge">#${i + 1}</span>
+      </div>
+    </div>
+  `).join("");
+}
 
-    function updateQueue() {
-        if (queue.length === 0) {
-            queueList.innerHTML = '<div class="empty-state">Queue is empty</div>';
-            dequeueBtn.disabled = true;
-            return;
-        }
-        dequeueBtn.disabled = false;
-        queueList.innerHTML = queue.map((entry, idx) => `
-            <div class="entry" style="background: linear-gradient(135deg, #d1fae5 0%, #dbeafe 100%); border-color: ${moodData[entry.mood].color};">
-                <div class="entry-header">
-                    <div class="entry-mood">
-                        <span class="entry-emoji">${moodData[entry.mood].emoji}</span>
-                        <div class="entry-details">
-                            <h4>${entry.mood}</h4>
-                            <div class="entry-time">${entry.time}</div>
-                        </div>
-                    </div>
-                    <span class="entry-badge">#${idx + 1}</span>
-                </div>
-            </div>
-        `).join('');
-    }
+function renderHashMap(map) {
+  if (!Object.keys(map).length) {
+    hashmapList.innerHTML = '<div class="empty-state">No data yet</div>';
+    return;
+  }
+  hashmapList.innerHTML = Object.entries(map).map(([mood, data]) => `
+    <div class="hashmap-entry">
+      <strong>${mood}</strong> (${data.count})<br>
+      <small>Triggers: ${data.triggers.join(", ") || "None"}</small><br>
+      <small>Symptoms: ${data.symptoms.join(", ") || "None"}</small>
+    </div>
+  `).join("");
+}
 
-    function updateHashMap() {
-        if (Object.keys(hashMap).length === 0) {
-            hashmapList.innerHTML = '<div class="empty-state">No data yet. Start tracking your mood!</div>';
-            return;
-        }
-        hashmapList.innerHTML = Object.entries(hashMap).map(([mood, data]) => `
-            <div class="hashmap-entry">
-                <div class="hashmap-header">
-                    <span class="hashmap-emoji">${moodData[mood].emoji}</span>
-                    <h3 style="margin: 0;">${mood}</h3>
-                    <span class="hashmap-count">${data.count}x</span>
-                </div>
-                <div class="hashmap-data">
-                    ${data.triggers.length > 0 ? `<div><strong>Triggers:</strong> ${data.triggers.join(', ')}</div>` : '<div><strong>Triggers:</strong> None recorded</div>'}
-                    ${data.symptoms.length > 0 ? `<div><strong>Symptoms:</strong> ${data.symptoms.join(', ')}</div>` : '<div><strong>Symptoms:</strong> None recorded</div>'}
-                </div>
-            </div>
-        `).join('');
-    }
+// ---------------- TABS ----------------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active');
+  });
+});
 
-    function checkMoodSpikes() {
-        if (stack.length < 3) {
-            alertBanner.classList.remove('active');
-            return;
-        }
-        const recent = stack.slice(0, 3).map(e => e.value);
-        const allLow = recent.every(v => v <= 2);
-        const spike = Math.max(...recent) - Math.min(...recent) >= 3;
-        if (allLow || spike) {
-            alertBanner.classList.add('active');
-        } else {
-            alertBanner.classList.remove('active');
-        }
-    }
-
-    // Tab switching
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabName = btn.dataset.tab;
-            
-            // Remove active class from all tabs and contents
-            tabBtns.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-            
-            // Add active class to clicked tab and corresponding content
-            btn.classList.add('active');
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-        });
-    });
-
-    // Copy code button
-    const copyBtn = document.getElementById('copyBtn');
-    copyBtn.addEventListener('click', () => {
-        const code = document.querySelector('#code-tab code').textContent;
-        navigator.clipboard.writeText(code).then(() => {
-            copyBtn.textContent = '✓ Copied!';
-            copyBtn.classList.add('copied');
-            setTimeout(() => {
-                copyBtn.textContent = 'Copy Code';
-                copyBtn.classList.remove('copied');
-            }, 2000);
-        });
-    });
-
+// INITIAL LOAD
+loadAll();
 </script>
+
 
 </body>
 </html>
