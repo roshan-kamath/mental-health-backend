@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mental Health Mood Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f3ff 0%, #e0e7ff 50%, #fce7f3 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeIn 1s ease-in;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 1.2em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .tab-btn {
+            padding: 12px 30px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #6b7280;
+        }
+
+        .tab-btn:hover {
+            border-color: #7c3aed;
+            color: #7c3aed;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .alert-banner {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        .alert-banner.active {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .alert-content h3 {
+            color: #991b1b;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+
+        .alert-content p {
+            color: #b91c1c;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
+        }
+
+        .card h2 {
+            font-size: 1.8em;
+            color: #1f2937;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mood-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mood-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 2em;
+            text-align: center;
+        }
+
+        .mood-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .mood-btn.selected {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 4px #a855f7;
+        }
+
+        .mood-label {
+            font-size: 0.5em;
+            display: block;
+            margin-top: 5px;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1em;
+            margin-bottom: 15px;
+            transition: border 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4b5563;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(124, 58, 237, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-action {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .btn-pop {
+            background: #ef4444;
+        }
+
+        .btn-pop:hover {
+            background: #dc2626;
+        }
+
+        .btn-dequeue {
+            background: #3b82f6;
+        }
+
+        .btn-dequeue:hover {
+            background: #2563eb;
+        }
+
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .entry-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .entry {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid;
+            transition: all 0.3s;
+        }
+
+        .entry:hover {
+            transform: scale(1.02);
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .entry-mood {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .entry-emoji {
+            font-size: 2em;
+        }
+
+        .entry-details h4 {
+            font-size: 1.1em;
+            color: #1f2937;
+        }
+
+        .entry-time {
+            font-size: 0.85em;
+            color: #6b7280;
+        }
+
+        .entry-badge {
+            background: #ddd6fe;
+            color: #5b21b6;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .hashmap-entry {
+            background: linear-gradient(135deg, #f3e8ff 0%, #fce7f3 100%);
+            border: 1px solid #e9d5ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .hashmap-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .hashmap-emoji {
+            font-size: 1.8em;
+        }
+
+        .hashmap-count {
+            margin-left: auto;
+            background: #ddd6fe;
+            color: #5b21b6;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 700;
+        }
+
+        .hashmap-data {
+            font-size: 0.9em;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        .hashmap-data strong {
+            color: #1f2937;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #9ca3af;
+            padding: 40px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .info-card {
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .info-card h4 {
+            font-weight: 700;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .info-card p {
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        .stack-card { background: #dbeafe; }
+        .stack-card h4 { color: #1e40af; }
+        
+        .queue-card { background: #d1fae5; }
+        .queue-card h4 { color: #065f46; }
+        
+        .hash-card { background: #f3e8ff; }
+        .hash-card h4 { color: #6b21a8; }
+
+        .code-container {
+            background: #1e1e1e;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .code-header h2 {
+            color: #ffffff;
+            font-size: 1.5em;
+            margin: 0;
+        }
+
+        .copy-btn {
+            padding: 10px 20px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #6d28d9;
+        }
+
+        .copy-btn.copied {
+            background: #10b981;
+        }
+
+        pre {
+            margin: 0;
+            padding: 0;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #d4d4d4;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="header">
+            <h1>🧠 AI Mental Health Mood Tracker</h1>
+            <p>Track your emotional wellbeing with intelligent data structures</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tracker">Mood Tracker</button>
+            <button class="tab-btn" data-tab="code">C Code</button>
+        </div>
+
+        <!-- Mood Tracker Tab -->
+        <div class="tab-content active" id="tracker-tab">
+       
+        <div class="alert-banner" id="alertBanner">
+            <span style="font-size: 2em;">⚠️</span>
+            <div class="alert-content">
+                <h3>Early Warning Detected</h3>
+                <p>Recent mood patterns show significant changes. Consider reaching out to support.</p>
+            </div>
+        </div>
+
+   
+        <div class="grid">
+         
+            <div class="card">
+                <h2>📝 Log Your Mood</h2>
+                <label>Select Mood</label>
+                <div class="mood-grid">
+                    <button class="mood-btn" data-mood="Very Happy" style="background: #10b98133;">
+                        
+                        <span class="mood-label">Very Happy</span>
+                    </button>
+                    <button class="mood-btn" data-mood="Happy" style="background: #34d39933;">
+                        
+                        <span class="mood-label">Happy</span>
+                    </button>
+                    <button class="mood-btn" data-mood="Neutral" style="background: #fbbf2433;">
+                        
+                        <span class="mood-label">Neutral</span>
+                    </button>
+                    <button class="mood-btn" data-mood="Sad" style="background: #fb923c33;">
+                        
+                        <span class="mood-label">Sad</span>
+                    </button>
+                    <button class="mood-btn" data-mood="Very Sad" style="background: #ef444433;">
+                        
+                        <span class="mood-label">Very Sad</span>
+                    </button>
+                </div>
+                
+                <label>Trigger (Optional)</label>
+                <input type="text" id="triggerInput" placeholder="e.g., Work stress, Social interaction">
+                
+                <label>Symptom (Optional)</label>
+                <input type="text" id="symptomInput" placeholder="e.g., Anxiety, Fatigue">
+                
+                <button class="btn-primary" id="addMoodBtn" disabled>Add Mood Entry</button>
+            </div>
+
+           
+            <div class="card">
+                <h2>📊 Hash Map: Triggers & Symptoms</h2>
+                <div class="entry-list" id="hashmapList">
+                    <div class="empty-state">No data yet. Start tracking your mood!</div>
+                </div>
+            </div>
+        </div>
+
+      
+        <div class="grid">
+            
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>📚 Stack: Recent Moods (LIFO)</h2>
+                    <button class="btn-action btn-pop" id="popBtn" disabled>Pop</button>
+                </div>
+                <div class="entry-list" id="stackList">
+                    <div class="empty-state">Stack is empty</div>
+                </div>
+            </div>
+
+            
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>🔄 Queue: Long-term Pattern (FIFO)</h2>
+                    <button class="btn-action btn-dequeue" id="dequeueBtn" disabled>Dequeue</button>
+                </div>
+                <div class="entry-list" id="queueList">
+                    <div class="empty-state">Queue is empty</div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="card">
+            <h2>📈 Data Structures Implementation</h2>
+            <div class="info-grid">
+                <div class="info-card stack-card">
+                    <h4>Stack (LIFO)</h4>
+                    <p>Stores the 5 most recent mood changes for immediate pattern detection</p>
+                </div>
+                <div class="info-card queue-card">
+                    <h4>Queue (FIFO)</h4>
+                    <p>Tracks last 10 moods chronologically for long-term trend analysis</p>
+                </div>
+                <div class="info-card hash-card">
+                    <h4>Hash Map</h4>
+                    <p>Maps moods to triggers & symptoms for correlation analysis</p>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- C Code Tab -->
+        <div class="tab-content" id="code-tab">
+            <div class="code-container">
+                <div class="code-header">
+                    <h2>💻 C Implementation</h2>
+                    <button class="copy-btn" id="copyBtn">Copy Code</button>
+                </div>
+                <pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;string.h&gt;
+
+#define MAX 100
+#define HASH_SIZE 10
+
+// ---------------- STACK (Recent moods) ----------------
+typedef struct {
+    char moods[MAX][50];
+    int top;
+} Stack;
+
+void initStack(Stack *s) {
+    s->top = -1;
+}
+
+void push(Stack *s, char mood[]) {
+    if (s->top == MAX - 1) {
+        printf("Stack full! Cannot add mood.\\n");
+        return;
+    }
+    strcpy(s->moods[++s->top], mood);
+}
+
+void displayStack(Stack *s) {
+    printf("\\nRecent Mood Changes (Stack - LIFO):\\n");
+    for (int i = s->top; i &gt;= 0; i--) {
+        printf("%s\\n", s->moods[i]);
+    }
+}
+
+// ---------------- QUEUE (Long-term history) ----------------
+typedef struct {
+    char moods[MAX][50];
+    int front, rear;
+} Queue;
+
+void initQueue(Queue *q) {
+    q->front = q->rear = -1;
+}
+
+void enqueue(Queue *q, char mood[]) {
+    if (q->rear == MAX - 1) {
+        printf("Queue full! Cannot add mood.\\n");
+        return;
+    }
+    if (q->front == -1) q->front = 0;
+    strcpy(q->moods[++q->rear], mood);
+}
+
+void displayQueue(Queue *q) {
+    printf("\\nLong-Term Mood History (Queue - FIFO):\\n");
+    for (int i = q->front; i &lt;= q->rear; i++) {
+        printf("%s\\n", q->moods[i]);
+    }
+}
+
+// ---------------- HASH MAP (Triggers &amp; Symptoms) ----------------
+typedef struct node {
+    char trigger[50];
+    char symptom[50];
+    struct node* next;
+} Node;
+
+Node* hashTable[HASH_SIZE];
+
+int hashFunction(char key[]) {
+    int sum = 0;
+    for (int i = 0; key[i] != '\\0'; i++)
+        sum += key[i];
+    return sum % HASH_SIZE;
+}
+
+void insertHash(char trigger[], char symptom[]) {
+    int idx = hashFunction(trigger);
+    Node* newNode = (Node*) malloc(sizeof(Node));
+    strcpy(newNode->trigger, trigger);
+    strcpy(newNode->symptom, symptom);
+    newNode->next = hashTable[idx];
+    hashTable[idx] = newNode;
+}
+
+void displayHash() {
+    printf("\\nTriggers and Symptoms (Hash Map):\\n");
+    for (int i = 0; i &lt; HASH_SIZE; i++) {
+        Node* temp = hashTable[i];
+        if (temp != NULL) {
+            printf("[%d]:\\n", i);
+            while (temp != NULL) {
+                printf("Trigger: %s --&gt; Symptom: %s\\n", temp->trigger, temp->symptom);
+                temp = temp->next;
+            }
+        }
+    }
+}
+
+// ---------------- MAIN ----------------
+int main() {
+    Stack recent;
+    Queue history;
+    initStack(&amp;recent);
+    initQueue(&amp;history);
+
+    int choice;
+    char mood[50], trigger[50], symptom[50];
+
+    while (1) {
+        printf("\\n--- AI Mental Health Mood Tracker ---\\n");
+        printf("1. Add today's mood\\n");
+        printf("2. View recent moods (Stack)\\n");
+        printf("3. View long-term mood history (Queue)\\n");
+        printf("4. Add trigger &amp; symptom (Hash Map)\\n");
+        printf("5. View triggers &amp; symptoms\\n");
+        printf("6. Exit\\n");
+        printf("Enter choice: ");
+        scanf("%d", &amp;choice);
+        getchar();
+
+        switch (choice) {
+            case 1:
+                printf("Enter your mood: ");
+                fgets(mood, 50, stdin);
+                mood[strcspn(mood, "\\n")] = '\\0';
+                push(&amp;recent, mood);
+                enqueue(&amp;history, mood);
+                break;
+
+            case 2:
+                displayStack(&amp;recent);
+                break;
+
+            case 3:
+                displayQueue(&amp;history);
+                break;
+
+            case 4:
+                printf("Enter trigger: ");
+                fgets(trigger, 50, stdin);
+                trigger[strcspn(trigger, "\\n")] = '\\0';
+
+                printf("Enter symptom: ");
+                fgets(symptom, 50, stdin);
+                symptom[strcspn(symptom, "\\n")] = '\\0';
+
+                insertHash(trigger, symptom);
+                break;
+
+            case 5:
+                displayHash();
+                break;
+
+            case 6:
+                printf("Thank you!\\n");
+                return 0;
+
+            default:
+                printf("Invalid choice!\\n");
+        }
+    }
+}</code></pre>
+            </div>
+        </div>
+
+    </div>
+
+   <script>
+   
+    const moodBtns = document.querySelectorAll('.mood-btn');
+    const addMoodBtn = document.getElementById('addMoodBtn');
+    const triggerInput = document.getElementById('triggerInput');
+    const symptomInput = document.getElementById('symptomInput');
+    const stackList = document.getElementById('stackList');
+    const queueList = document.getElementById('queueList');
+    const hashmapList = document.getElementById('hashmapList');
+    const popBtn = document.getElementById('popBtn');
+    const dequeueBtn = document.getElementById('dequeueBtn');
+    const alertBanner = document.getElementById('alertBanner');
+
+    let selectedMood = null;
+
+   const moodData = {
+        'Very Happy': { emoji: '', color: '#10b981', value: 5 },
+        'Happy': { emoji: '', color: '#34d399', value: 4 },
+        'Neutral': { emoji: '', color: '#fbbf24', value: 3 },
+        'Sad': { emoji: '', color: '#fb923c', value: 2 },
+        'Very Sad': { emoji: '', color: '#ef4444', value: 1 }
+    };
+
+    // In-memory storage (since localStorage is not supported)
+    let stack = [];
+    let queue = [];
+    let hashMap = {};
+
+  
+    moodBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            moodBtns.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedMood = btn.dataset.mood;
+            addMoodBtn.disabled = false;
+        });
+    });
+
+   
+    addMoodBtn.addEventListener('click', () => {
+        if (!selectedMood) return;
+
+        const entry = {
+            mood: selectedMood,
+            trigger: triggerInput.value,
+            symptom: symptomInput.value,
+            time: new Date().toLocaleString(),
+            value: moodData[selectedMood].value
+        };
+
+        // Add to stack (LIFO - max 5)
+        stack.unshift(entry);
+        if (stack.length > 5) stack.pop();
+
+        // Add to queue (FIFO - max 10)
+        queue.push(entry);
+        if (queue.length > 10) queue.shift();
+
+        // Add to hashmap
+        if (!hashMap[selectedMood]) {
+            hashMap[selectedMood] = { count: 0, triggers: [], symptoms: [] };
+        }
+        hashMap[selectedMood].count++;
+        if (entry.trigger) hashMap[selectedMood].triggers.push(entry.trigger);
+        if (entry.symptom) hashMap[selectedMood].symptoms.push(entry.symptom);
+
+        // Reset form
+        moodBtns.forEach(b => b.classList.remove('selected'));
+        selectedMood = null;
+        triggerInput.value = '';
+        symptomInput.value = '';
+        addMoodBtn.disabled = true;
+
+        // Update displays
+        updateStack();
+        updateQueue();
+        updateHashMap();
+        checkMoodSpikes();
+    });
+
+ 
+    popBtn.addEventListener('click', () => {
+        if (stack.length > 0) {
+            stack.shift();
+            updateStack();
+            checkMoodSpikes();
+        }
+    });
+
+    dequeueBtn.addEventListener('click', () => {
+        if (queue.length > 0) {
+            queue.shift();
+            updateQueue();
+        }
+    });
+
+    function updateStack() {
+        if (stack.length === 0) {
+            stackList.innerHTML = '<div class="empty-state">Stack is empty</div>';
+            popBtn.disabled = true;
+            return;
+        }
+        popBtn.disabled = false;
+        stackList.innerHTML = stack.map((entry, idx) => `
+            <div class="entry" style="background: linear-gradient(135deg, #dbeafe 0%, #f3e8ff 100%); border-color: ${moodData[entry.mood].color};">
+                <div class="entry-header">
+                    <div class="entry-mood">
+                        <span class="entry-emoji">${moodData[entry.mood].emoji}</span>
+                        <div class="entry-details">
+                            <h4>${entry.mood}</h4>
+                            <div class="entry-time">${entry.time}</div>
+                        </div>
+                    </div>
+                    <span class="entry-badge">#${idx + 1}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function updateQueue() {
+        if (queue.length === 0) {
+            queueList.innerHTML = '<div class="empty-state">Queue is empty</div>';
+            dequeueBtn.disabled = true;
+            return;
+        }
+        dequeueBtn.disabled = false;
+        queueList.innerHTML = queue.map((entry, idx) => `
+            <div class="entry" style="background: linear-gradient(135deg, #d1fae5 0%, #dbeafe 100%); border-color: ${moodData[entry.mood].color};">
+                <div class="entry-header">
+                    <div class="entry-mood">
+                        <span class="entry-emoji">${moodData[entry.mood].emoji}</span>
+                        <div class="entry-details">
+                            <h4>${entry.mood}</h4>
+                            <div class="entry-time">${entry.time}</div>
+                        </div>
+                    </div>
+                    <span class="entry-badge">#${idx + 1}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function updateHashMap() {
+        if (Object.keys(hashMap).length === 0) {
+            hashmapList.innerHTML = '<div class="empty-state">No data yet. Start tracking your mood!</div>';
+            return;
+        }
+        hashmapList.innerHTML = Object.entries(hashMap).map(([mood, data]) => `
+            <div class="hashmap-entry">
+                <div class="hashmap-header">
+                    <span class="hashmap-emoji">${moodData[mood].emoji}</span>
+                    <h3 style="margin: 0;">${mood}</h3>
+                    <span class="hashmap-count">${data.count}x</span>
+                </div>
+                <div class="hashmap-data">
+                    ${data.triggers.length > 0 ? `<div><strong>Triggers:</strong> ${data.triggers.join(', ')}</div>` : '<div><strong>Triggers:</strong> None recorded</div>'}
+                    ${data.symptoms.length > 0 ? `<div><strong>Symptoms:</strong> ${data.symptoms.join(', ')}</div>` : '<div><strong>Symptoms:</strong> None recorded</div>'}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function checkMoodSpikes() {
+        if (stack.length < 3) {
+            alertBanner.classList.remove('active');
+            return;
+        }
+        const recent = stack.slice(0, 3).map(e => e.value);
+        const allLow = recent.every(v => v <= 2);
+        const spike = Math.max(...recent) - Math.min(...recent) >= 3;
+        if (allLow || spike) {
+            alertBanner.classList.add('active');
+        } else {
+            alertBanner.classList.remove('active');
+        }
+    }
+
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabName = btn.dataset.tab;
+            
+            // Remove active class from all tabs and contents
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            btn.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        });
+    });
+
+    // Copy code button
+    const copyBtn = document.getElementById('copyBtn');
+    copyBtn.addEventListener('click', () => {
+        const code = document.querySelector('#code-tab code').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            copyBtn.textContent = '✓ Copied!';
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy Code';
+                copyBtn.classList.remove('copied');
+            }, 2000);
+        });
+    });
+
+</script>
+
+</body>
+</html>
